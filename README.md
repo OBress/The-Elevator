@@ -56,8 +56,6 @@ INFO:     Started reloader process
 The API server will be available at:
 
 - **Local**: `http://localhost:8000`
-- **API Documentation**: `http://localhost:8000/docs` (Swagger UI)
-- **Alternative Docs**: `http://localhost:8000/redoc`
 
 ### Step 2: Test the Service
 
