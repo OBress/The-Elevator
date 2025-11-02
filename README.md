@@ -2,13 +2,6 @@
 
 A pretty good elevator if you ask me! This is an elevator simulation system with a RESTful API built using FastAPI. It simulates an intelligent elevator that efficiently handles floor requests using priority queues.
 
-## Features
-
-- **Smart Elevator Logic**: Uses optimized algorithms with priority queues to handle multiple floor requests
-- **RESTful API**: FastAPI-based server with automatic documentation
-- **Interactive CLI Tester**: User-friendly command-line interface to test the elevator system
-- **Realistic Simulation**: Supports external requests (up/down buttons) and internal passenger requests
-
 ## Prerequisites
 
 - **Python 3.7+**: Make sure you have Python installed
@@ -27,7 +20,7 @@ Or download and extract the ZIP file.
 
 ### 2. Install Dependencies
 
-It's recommended to use a virtual environment:
+Activate a virtual environment:
 
 ```bash
 # Create a virtual environment (optional but recommended)
@@ -163,11 +156,3 @@ Make sure you've installed all dependencies:
 ```bash
 pip install -r requirements.txt
 ```
-
-## Contributing
-
-Feel free to submit issues or pull requests!
-
-## License
-
-This project is open source and available for educational purposes.
