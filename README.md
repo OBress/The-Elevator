@@ -1,6 +1,6 @@
 # The Elevator
 
-A pretty good elevator if you ask me! This is an elevator simulation system with a RESTful API built using FastAPI. It simulates an intelligent elevator that efficiently handles floor requests using priority queues.
+A pretty good elevator if you ask me.
 
 ## Prerequisites
 
