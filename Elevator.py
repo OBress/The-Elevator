@@ -1,4 +1,5 @@
-
+import heapq
+from typing import Optional
 
 
 
@@ -18,7 +19,7 @@ class Elevator:
         # maintain sets to avoid duplicate floors
         self._upSet = set()
         self._downSet = set()
-        # maintain the active target floor
+        # active target floor
         self._activeTarget = None
     
 
@@ -57,13 +58,14 @@ class Elevator:
             self._activeTarget = self._nextTarget()
             
         # move elevator in the direction of the active target
+        # elevator below the target floor
         if self.currentFloor < self._activeTarget:
             self.direction = 1
-            self.current_floor += 1
-
+            self.currentFloor += 1
+        # elevator above the target floor
         elif self.currentFloor > self._activeTarget:
             self.direction = -1
-            self.current_floor -= 1
+            self.currentFloor -= 1
         
         # arrived at the target floor
         if self.currentFloor == self._activeTarget:
@@ -72,6 +74,70 @@ class Elevator:
     
     def _nextTarget(self):
         """returns the next target floor"""
+        return None
+
+
+    def _addUp(self, floor):
+        """adds a floor to the up queue"""
+        if floor > self.maxFloor:
+            raise ValueError("requested floor exceeds max floor")
+
+        # avoid duplicates
+        if floor in self._upSet:
+            return
+            
+        heapq.heappush(self._upHeap, floor)
+        self._upSet.add(floor)
+
+    def _addDown(self, floor: int):
+        """adds a floor to the down queue"""
+        if floor < 0:
+            raise ValueError("requested floor below ground floor")
+
+        # avoid duplicates
+        if floor in self._downSet:
+            return
+
+        # add the (-1 * floor) to the down queue so the highest floor number is the most prioritary (most negative number)
+        heapq.heappush(self._downHeap, -1 * floor)
+        self._downSet.add(floor)
+
+    def _peekUp(self):
+        """returns the next floor in the up queue"""
+        if self._upHeap: 
+            return self._upHeap[0]
+
+        # no floors in the up queue
+        return None
+
+    def _peekDown(self):
+        """returns the next floor in the down queue"""
+        if self._downHeap:
+            # return -1 * floor to get the highest floor number
+            return -1 * self._downHeap[0]
+
+        # no floors in the down queue
+        return None
+
+    def _popUp(self):
+        """removes and returns the next floor in the up queue"""
+        if self._upHeap:
+            floor = heapq.heappop(self._upHeap)
+            self._upSet.remove(floor)
+            return floor
+
+        # no floors in the up queue
+        return None
+
+    def _popDown(self):
+        """removes and returns the next floor in the down queue"""
+        if self._downHeap:
+            # remove the (-1 * floor) to get the highest floor number
+            floor = -1 * heapq.heappop(self._downHeap)
+            self._downSet.remove(floor)
+            return floor
+
+        # no floors in the down queue
         return None
 
     
