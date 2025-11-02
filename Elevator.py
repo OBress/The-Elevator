@@ -33,7 +33,7 @@ class Elevator:
             "currentFloor": self.currentFloor,
             "direction": self.direction,
             "queueUp": sorted(self._upSet),    
-            "queueDown": sorted(self._downSet, reverse=True),
+            "queueDown": sorted(self._downSet, reverse=True), # sorted in reverse since highest is most prioritary
             "activeTarget": self._activeTarget,
         }
 
@@ -109,10 +109,11 @@ class Elevator:
         if downNext is None:
             return self._popUp()
 
+
         # if there are both requests, find the closest request
         distanceUp = abs(upNext - self.currentFloor)
         distanceDown = abs(downNext - self.currentFloor)
-        
+
         # if the up request is closer, move to the up request
         if distanceUp <= distanceDown:
             return self._popUp()
