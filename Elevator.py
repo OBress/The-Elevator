@@ -122,51 +122,78 @@ class Elevator:
         # elevator below the target floor
         if self.currentFloor < self._activeTarget:
             self.direction = 1
+            # remove floor from up queue
+            self._removeFloor(self.currentFloor)
             self.currentFloor += 1
 
         # elevator above the target floor
         elif self.currentFloor > self._activeTarget:
             self.direction = -1
+            # remove floor from down queue
+            self._removeFloor(self.currentFloor)
             self.currentFloor -= 1
         
 
         # arrived at the target floor
         if self.currentFloor == self._activeTarget:
-            # remove the floor from the appropriate queue now that we've reached it
-            self._removeFloor(self._activeTarget)
             # get next target
             self._activeTarget = self._nextTarget()
+
     
     def _nextTarget(self):
         """returns the next target floor"""
 
         # elevator is currently moving up
         if self.direction > 0:
-            # only service floors above current position when going up
+            # Priority 1: service up queue floors above current position
             target = self._peekUp(self.currentFloor)
-            # if there is a next floor up return it
             if target is not None:
                 return target
-            # if there is no next floor up, elevator should move to down target
-            return self._peekDown(self.currentFloor)
+            
+            # Priority 2: go up to service down queue floors above current position
+            # (continue going up to get people who want to go down, highest first)
+            target = self._peekDownAbove(self.currentFloor)
+            if target is not None:
+                return target
+            
+            # Priority 3: change direction - service down queue floors below
+            target = self._peekDown(self.currentFloor)
+            if target is not None:
+                return target
+            
+            # Priority 4: change direction - service up queue floors below
+            return self._peekUpBelow(self.currentFloor)
 
 
         # elevator is currently moving down
         if self.direction < 0:
-            # only service floors below current position when going down
+            # Priority 1: service down queue floors below current position
             target = self._peekDown(self.currentFloor)
-            # if there is a next floor down return it
             if target is not None:
                 return target
-            # if there is no next floor down, elevator should move to up target
-            return self._peekUp(self.currentFloor)
+            
+            # Priority 2: go down to service up queue floors below current position
+            # (continue going down to get people who want to go up, lowest first)
+            target = self._peekUpBelow(self.currentFloor)
+            if target is not None:
+                return target
+            
+            # Priority 3: change direction - service up queue floors above
+            target = self._peekUp(self.currentFloor)
+            if target is not None:
+                return target
+            
+            # Priority 4: change direction - service down queue floors above
+            return self._peekDownAbove(self.currentFloor)
 
 
         # if elevator is idle find the closest request.
-        upNext = self._peekUp(self.currentFloor)
-        downNext = self._peekDown(self.currentFloor)
+        # Use _peekAny methods to consider ALL floors in both queues,
+        # not just floors in the "proper" direction from current position
+        upNext = self._peekAnyUp()
+        downNext = self._peekAnyDown()
 
-        # if there are no valid requests in proper positions
+        # if there are no valid requests
         if upNext is None and downNext is None:
             return None
         # if only down request
@@ -230,6 +257,42 @@ class Elevator:
             if floor < currentFloor:
                 return floor
         return None
+    
+    def _peekAnyUp(self):
+        """returns the lowest floor in the up queue (regardless of current position)"""
+        if not self._upHeap:
+            return None
+        return min(self._upHeap)
+    
+    def _peekAnyDown(self):
+        """returns the highest floor in the down queue (regardless of current position)"""
+        if not self._downHeap:
+            return None
+        # remember down heap stores negative values, so min negative = highest floor
+        return -1 * min(self._downHeap)
+    
+    def _peekDownAbove(self, currentFloor):
+        """returns the highest floor in the down queue that is above currentFloor"""
+        # When going up to service down requests, we want the highest floor first
+        validFloors = []
+        for negFloor in self._downHeap:
+            floor = -1 * negFloor
+            if floor > currentFloor:
+                validFloors.append(floor)
+        if not validFloors:
+            return None
+        return max(validFloors)
+    
+    def _peekUpBelow(self, currentFloor):
+        """returns the lowest floor in the up queue that is below currentFloor"""
+        # When going down to service up requests, we want the lowest floor first
+        validFloors = []
+        for floor in self._upHeap:
+            if floor < currentFloor:
+                validFloors.append(floor)
+        if not validFloors:
+            return None
+        return min(validFloors)
     
     def _removeFloor(self, floor):
         """remove a floor from the queue based on current direction"""
