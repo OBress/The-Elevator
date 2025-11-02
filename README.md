@@ -19,8 +19,8 @@ A pretty good elevator if you ask me! This is an elevator simulation system with
 ### 1. Clone or Download the Repository
 
 ```bash
-git clone https://github.com/yourusername/The-Elevator.git
-cd The-Elevator
+git clone https://github.com/OBress/The-Elevator.git
+cd The-Elevators
 ```
 
 Or download and extract the ZIP file.
