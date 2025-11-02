@@ -57,6 +57,23 @@ class Elevator:
             self._advanceOnce()
 
         return self.status()
+
+    def requestFloor(self, floor, direction):
+        """Register a stop request for the elevator.
+
+        
+        int floor: target floor (0, maxFloor)
+        int direction: direction of request (1 for up, -1 for down)
+        """
+        # validate floor and direction
+        self._validateFloor(floor)
+        self._validateDirection(direction)
+
+        # add the request to the appropriate queue
+        if direction == 1:
+            self._addUp(floor)
+        else:
+            self._addDown(floor)
     
     
     # ------------------------------------------------------------
@@ -144,20 +161,22 @@ class Elevator:
         """adds a floor to the up queue"""
         # avoid duplicates
         if floor in self._upSet:
-            return
+            return False
 
         heapq.heappush(self._upHeap, floor)
         self._upSet.add(floor)
+        return True
 
     def _addDown(self, floor: int):
         """adds a floor to the down queue"""
         # avoid duplicates
         if floor in self._downSet:
-            return
+            return False
 
         # add the (-1 * floor) to the down queue so the highest floor number is the most prioritary (most negative number)
         heapq.heappush(self._downHeap, -1 * floor)
         self._downSet.add(floor)
+        return True
 
     def _peekUp(self):
         """returns the next floor in the up queue"""
@@ -203,3 +222,8 @@ class Elevator:
             raise ValueError("floor cannot be negative")
         if floor > self.maxFloor:
             raise ValueError("floor cannot exceed max floor")
+    
+    def _validateDirection(self, direction: int):
+        """validates the direction number"""
+        if direction not in (-1, 1):
+            raise ValueError("direction must be -1 or 1")
