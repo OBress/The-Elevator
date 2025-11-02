@@ -102,7 +102,8 @@ class Elevator:
             self._addDown(floor)
         
         # check if we need to update the active target
-        self._updateActiveTarget()
+        self._activeTarget = self._nextTarget()
+
     
     
     # ------------------------------------------------------------
@@ -112,11 +113,8 @@ class Elevator:
         """handles logic for moving elevator one step"""
         # check for new active target
         if self._activeTarget is None:
-            self._activeTarget = self._nextTarget()
-            # if there is no next target, elevator should idle
-            if self._activeTarget is None:
-                self.direction = 0
-                return
+            self.direction = 0
+            return
             
 
         # move elevator in the direction of the active target
@@ -135,12 +133,12 @@ class Elevator:
         # arrived at the target floor
         if self.currentFloor == self._activeTarget:
             # remove the floor from the appropriate queue now that we've reached it
-            self._removeFloorFromQueue(self._activeTarget)
+            self._removeFloor(self._activeTarget)
             # get next target
             self._activeTarget = self._nextTarget()
     
     def _nextTarget(self):
-        """returns the next target floor (without removing from queue)"""
+        """returns the next target floor"""
 
         # elevator is currently moving up
         if self.direction > 0:
@@ -190,6 +188,10 @@ class Elevator:
         return downNext
 
 
+
+    # ------------------------------------------------------------
+    # QUEUE METHODS
+    # ------------------------------------------------------------
     def _addUp(self, floor):
         """adds a floor to the up queue"""
         # avoid duplicates
@@ -228,29 +230,8 @@ class Elevator:
             if floor < currentFloor:
                 return floor
         return None
-
-    def _updateActiveTarget(self):
-        """update active target if a closer floor should be serviced first"""
-        # if there's no active target
-        if self._activeTarget is None: 
-            return
-        
-        # check if there is a closer floor that should be serviced first versus the active target
-        if self.direction > 0:
-            # check if there is a floor in the up queue between current and active target
-            closerFloor = self._peekUp(self.currentFloor)
-            if closerFloor is not None and closerFloor < self._activeTarget:
-                # update target to the closer floor (old target stays in queue)
-                self._activeTarget = closerFloor
-        
-        elif self.direction < 0:
-            # check if there is a closer floor that should be serviced first versus the active target
-            closerFloor = self._peekDown(self.currentFloor)
-            if closerFloor is not None and closerFloor > self._activeTarget:
-                # update target to the closer floor (old target stays in queue)
-                self._activeTarget = closerFloor
     
-    def _removeFloorFromQueue(self, floor):
+    def _removeFloor(self, floor):
         """remove a floor from the queue based on current direction"""
         # only remove from the queue that matches our current direction
         if self.direction > 0:
@@ -269,6 +250,9 @@ class Elevator:
                 self._downHeap = [f for f in self._downHeap if f != -floor]
                 heapq.heapify(self._downHeap)
 
+    # ------------------------------------------------------------
+    # VALIDATION METHODS
+    # ------------------------------------------------------------
     def _validateFloor(self, floor: int):
         """validates the floor number"""
         if floor < 0:
