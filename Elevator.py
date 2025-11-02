@@ -73,7 +73,7 @@ class Elevator:
         self._validateFloor(floor)
         self._validateDirection(direction)
 
-        # handle internal requests (from passengers already inside the elevator)
+        # passenger inside requesting floor
         if direction == 0:
             # automatically determine direction based on current floor
             if floor > self.currentFloor:
@@ -83,6 +83,8 @@ class Elevator:
             # if floor == currentFloor, we're already there, so ignore
             return
 
+            
+        # passenger outside requesting floor
         # add the request to the appropriate queue
         if direction == 1:
             self._addUp(floor)
@@ -151,8 +153,18 @@ class Elevator:
         upNext = self._peekUp(self.currentFloor)
         downNext = self._peekDown(self.currentFloor)
 
-        # if there are no requests
+        # if there are no valid requests in proper positions
         if upNext is None and downNext is None:
+            # Check if there are any requests at all (might be in wrong queues)
+            # Try popping to trigger queue reorganization
+            if self._upHeap or self._downHeap:
+                # Try down first, then up
+                result = self._popDown(self.currentFloor)
+                if result is not None:
+                    return result
+                result = self._popUp(self.currentFloor)
+                if result is not None:
+                    return result
             return None
         # if only down request
         if upNext is None:

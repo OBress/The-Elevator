@@ -172,12 +172,12 @@ class TestElevator(unittest.TestCase):
     def test_invalid_direction(self):
         """Test that invalid direction raises ValueError"""
         with self.assertRaises(ValueError) as context:
-            self.elevator.requestFloor(5, 0)
-        self.assertIn("direction must be -1 or 1", str(context.exception))
+            self.elevator.requestFloor(5, 2)
+        self.assertIn("direction must be", str(context.exception))
         
         with self.assertRaises(ValueError) as context:
-            self.elevator.requestFloor(5, 2)
-        self.assertIn("direction must be -1 or 1", str(context.exception))
+            self.elevator.requestFloor(5, -2)
+        self.assertIn("direction must be", str(context.exception))
 
     def test_invalid_steps(self):
         """Test that invalid steps value raises ValueError"""
@@ -695,6 +695,260 @@ class TestElevator(unittest.TestCase):
             # Floor should increase by exactly 1 each step
             self.assertEqual(self.elevator.currentFloor, prev_floor + 1)
             prev_floor = self.elevator.currentFloor
+
+    # ================================================================
+    # INTERNAL FLOOR REQUEST TESTS (Direction = 0)
+    # ================================================================
+
+    def test_internal_request_going_up(self):
+        """Test internal request from passenger going up"""
+        # Elevator picks up person at floor 0
+        # Person inside requests floor 5 (direction = 0 for internal request)
+        self.elevator.requestFloor(5, 0)
+        
+        # Should be added to up queue
+        status = self.elevator.status()
+        self.assertIn(5, status["queueUp"])
+        
+        # Step to floor 5
+        self.elevator.step(5)
+        self.assertEqual(self.elevator.currentFloor, 5)
+
+    def test_internal_request_going_down(self):
+        """Test internal request from passenger going down"""
+        # Elevator starts at floor 8
+        self.elevator.currentFloor = 8
+        
+        # Person inside requests floor 3 (internal request)
+        self.elevator.requestFloor(3, 0)
+        
+        # Should be added to down queue
+        status = self.elevator.status()
+        self.assertIn(3, status["queueDown"])
+        
+        # Step to floor 3
+        self.elevator.step(5)
+        self.assertEqual(self.elevator.currentFloor, 3)
+
+    def test_internal_request_current_floor(self):
+        """Test internal request for current floor is ignored"""
+        self.elevator.currentFloor = 5
+        
+        # Request current floor (should be ignored)
+        self.elevator.requestFloor(5, 0)
+        
+        status = self.elevator.status()
+        self.assertNotIn(5, status["queueUp"])
+        self.assertNotIn(5, status["queueDown"])
+
+    def test_pickup_and_internal_request(self):
+        """Test realistic scenario: pickup person, they request destination"""
+        # Person at floor 3 wants to go up
+        self.elevator.requestFloor(3, 1)
+        
+        # Elevator goes to floor 3
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 3)
+        
+        # Person gets in and requests floor 8 (internal request)
+        self.elevator.requestFloor(8, 0)
+        
+        # Elevator should go to floor 8
+        self.elevator.step(5)
+        self.assertEqual(self.elevator.currentFloor, 8)
+
+    def test_multiple_people_internal_requests(self):
+        """Test multiple people with different internal destination requests"""
+        # Person at floor 2 calls elevator going up
+        self.elevator.requestFloor(2, 1)
+        
+        # Elevator goes to floor 2
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 2)
+        
+        # Person 1 gets in, wants floor 5
+        self.elevator.requestFloor(5, 0)
+        
+        # Elevator starts moving, stops at floor 4 to pick up another person
+        self.elevator.requestFloor(4, 1)
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 4)
+        
+        # Person 2 gets in, wants floor 8
+        self.elevator.requestFloor(8, 0)
+        
+        # Elevator should now service floor 5, then floor 8
+        self.elevator.step()
+        self.assertEqual(self.elevator.currentFloor, 5)
+        
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 8)
+
+    def test_mixed_external_and_internal_requests(self):
+        """Test complex scenario mixing external pickups and internal destinations"""
+        # Person 1 at floor 3 wants to go up
+        self.elevator.requestFloor(3, 1)
+        
+        # Elevator at floor 0 moves to floor 3
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 3)
+        
+        # Person 1 gets in, wants to go to floor 7 (internal)
+        self.elevator.requestFloor(7, 0)
+        
+        # While moving, person 2 at floor 5 also wants to go up
+        self.elevator.requestFloor(5, 1)
+        
+        # Elevator stops at floor 5
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 5)
+        
+        # Person 2 gets in, wants to go to floor 9 (internal)
+        self.elevator.requestFloor(9, 0)
+        
+        # Elevator services floor 7
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 7)
+        
+        # Then services floor 9
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 9)
+
+    def test_internal_request_opposite_direction(self):
+        """Test internal request in opposite direction of current movement"""
+        # Elevator going up to floor 8
+        self.elevator.requestFloor(8, 1)
+        self.elevator.step(5)  # Now at floor 5, moving up
+        
+        # Person gets in at floor 5, but wants to go DOWN to floor 2
+        self.elevator.requestFloor(2, 0)
+        
+        # Elevator should continue up to floor 8 first
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 8)
+        
+        # Then come back down to floor 2
+        self.elevator.step(6)
+        self.assertEqual(self.elevator.currentFloor, 2)
+
+    def test_realistic_building_scenario(self):
+        """Test realistic building scenario with multiple people and internal requests"""
+        # Morning scenario: people at ground floor going to different floors
+        
+        # 3 people at floor 0 call elevator going up
+        self.elevator.requestFloor(0, 1)
+        
+        # Elevator is already at floor 0, people get in
+        # Person 1 wants floor 3
+        self.elevator.requestFloor(3, 0)
+        # Person 2 wants floor 7
+        self.elevator.requestFloor(7, 0)
+        # Person 3 wants floor 5
+        self.elevator.requestFloor(5, 0)
+        
+        # Elevator should service in order: 3, 5, 7
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 3)
+        
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 5)
+        
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 7)
+        
+        # Now someone at floor 9 wants to go down
+        self.elevator.requestFloor(9, -1)
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 9)
+        
+        # They want to go to floor 2
+        self.elevator.requestFloor(2, 0)
+        self.elevator.step(7)
+        self.assertEqual(self.elevator.currentFloor, 2)
+
+    def test_internal_requests_both_directions(self):
+        """Test internal requests going both up and down from middle floor"""
+        # Start at floor 5 with people inside
+        self.elevator.currentFloor = 5
+        
+        # Person 1 wants floor 8 (up)
+        self.elevator.requestFloor(8, 0)
+        # Person 2 wants floor 2 (down)
+        self.elevator.requestFloor(2, 0)
+        
+        # Both should be in their respective queues
+        status = self.elevator.status()
+        self.assertIn(8, status["queueUp"])
+        self.assertIn(2, status["queueDown"])
+        
+        # Elevator should pick closest first (2 is closer: 3 floors vs 8: 3 floors, tie goes to up)
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 8)
+        
+        # Then service floor 2
+        self.elevator.step(6)
+        self.assertEqual(self.elevator.currentFloor, 2)
+
+    def test_internal_request_while_moving_same_direction(self):
+        """Test adding internal request while elevator moving in same direction"""
+        # Elevator going to floor 10
+        self.elevator.requestFloor(10, 1)
+        
+        # Move to floor 4
+        self.elevator.step(4)
+        self.assertEqual(self.elevator.currentFloor, 4)
+        
+        # Someone inside requests floor 7 (between current and destination)
+        self.elevator.requestFloor(7, 0)
+        
+        # Should stop at floor 7 first
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 7)
+        
+        # Then continue to floor 10
+        self.elevator.step(3)
+        self.assertEqual(self.elevator.currentFloor, 10)
+
+    def test_complex_internal_external_mix(self):
+        """Test complex mix of internal and external requests"""
+        # External: Person at floor 2 wants to go up
+        self.elevator.requestFloor(2, 1)
+        
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 2)
+        
+        # Internal: They want floor 6
+        self.elevator.requestFloor(6, 0)
+        
+        # External: Person at floor 4 wants to go up
+        self.elevator.requestFloor(4, 1)
+        
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 4)
+        
+        # Internal: Second person wants floor 9
+        self.elevator.requestFloor(9, 0)
+        
+        # External: Person at floor 8 wants to go down
+        self.elevator.requestFloor(8, -1)
+        
+        # Should finish going up: 6, 8 (pickup while going up), 9
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 6)
+        
+        self.elevator.step(2)
+        self.assertEqual(self.elevator.currentFloor, 8)
+        
+        # Person at 8 gets in, wants floor 3
+        self.elevator.requestFloor(3, 0)
+        
+        # Continue to 9
+        self.elevator.step()
+        self.assertEqual(self.elevator.currentFloor, 9)
+        
+        # Then back down to 3
+        self.elevator.step(6)
+        self.assertEqual(self.elevator.currentFloor, 3)
 
 
 def run_tests():
