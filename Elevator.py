@@ -79,21 +79,15 @@ class Elevator:
 
     def _addUp(self, floor):
         """adds a floor to the up queue"""
-        if floor > self.maxFloor:
-            raise ValueError("requested floor exceeds max floor")
-
         # avoid duplicates
         if floor in self._upSet:
             return
-            
+
         heapq.heappush(self._upHeap, floor)
         self._upSet.add(floor)
 
     def _addDown(self, floor: int):
         """adds a floor to the down queue"""
-        if floor < 0:
-            raise ValueError("requested floor below ground floor")
-
         # avoid duplicates
         if floor in self._downSet:
             return
@@ -140,4 +134,9 @@ class Elevator:
         # no floors in the down queue
         return None
 
-    
+    def _validateFloor(self, floor: int):
+        """validates the floor number"""
+        if floor < 0:
+            raise ValueError("floor cannot be negative")
+        if floor > self.maxFloor:
+            raise ValueError("floor cannot exceed max floor")
