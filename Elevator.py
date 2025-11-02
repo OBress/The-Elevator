@@ -56,6 +56,10 @@ class Elevator:
         for _ in range(steps):
             self._advanceOnce()
 
+        # if no more targets and more steps set direction to idle
+        if self._activeTarget is None and steps > 1:
+            self.direction = 0
+
         return self.status()
 
     def requestFloor(self, floor, direction):
@@ -63,11 +67,21 @@ class Elevator:
 
         
         int floor: target floor (0, maxFloor)
-        int direction: direction of request (1 for up, -1 for down)
+        int direction: direction of request (1 for up, -1 for down, 0 for internal request from passenger inside)
         """
         # validate floor and direction
         self._validateFloor(floor)
         self._validateDirection(direction)
+
+        # handle internal requests (from passengers already inside the elevator)
+        if direction == 0:
+            # automatically determine direction based on current floor
+            if floor > self.currentFloor:
+                self._addUp(floor)
+            elif floor < self.currentFloor:
+                self._addDown(floor)
+            # if floor == currentFloor, we're already there, so ignore
+            return
 
         # add the request to the appropriate queue
         if direction == 1:
@@ -105,11 +119,8 @@ class Elevator:
 
         # arrived at the target floor
         if self.currentFloor == self._activeTarget:
-            # get next target before updating direction
+            # get next target
             self._activeTarget = self._nextTarget()
-            # if no next target, go idle
-            if self._activeTarget is None:
-                self.direction = 0
     
     def _nextTarget(self):
         """returns the next target floor"""
@@ -213,7 +224,7 @@ class Elevator:
             elif floor < currentFloor:
                 # floor is behind us, add it to down queue
                 self._addDown(floor)
-            # if floor == currentFloor, we're already there, discard it
+            # if floor == currentFloor we already visited it
         
         # no floors in the up queue above currentFloor
         return None
@@ -231,7 +242,8 @@ class Elevator:
             elif floor > currentFloor:
                 # floor is behind us, add it to up queue
                 self._addUp(floor)
-            # if floor == currentFloor, we're already there, discard it
+            # if floor == currentFloor we already visited it
+
         
         # no floors in the down queue below currentFloor
         return None
@@ -245,5 +257,5 @@ class Elevator:
     
     def _validateDirection(self, direction: int):
         """validates the direction number"""
-        if direction not in (-1, 1):
-            raise ValueError("direction must be -1 or 1")
+        if direction not in (-1, 0, 1):
+            raise ValueError("direction must be -1, 0, or 1")
