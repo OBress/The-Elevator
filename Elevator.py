@@ -37,6 +37,16 @@ class Elevator:
             "activeTarget": self._activeTarget,
         }
 
+    def reset(self):
+        """reset the elevator to a default state"""
+        self.currentFloor = 0
+        self.direction = 0
+        self._upSet = set()
+        self._downSet = set()
+        self._upHeap = []
+        self._downHeap = []
+        self._activeTarget = None
+        return self.status()
 
     def step(self, steps = 1):
         """move elevator by the number of steps given"""
@@ -54,19 +64,28 @@ class Elevator:
     # ------------------------------------------------------------
     def _advanceOnce(self):
         """handles logic for moving elevator one step"""
+        # check for new active target
         if self._activeTarget is None:
             self._activeTarget = self._nextTarget()
+            # if there is no next target, elevator should idle
+            if self._activeTarget is None:
+                self.direction = 0
+                return
             
+
         # move elevator in the direction of the active target
+
         # elevator below the target floor
         if self.currentFloor < self._activeTarget:
             self.direction = 1
             self.currentFloor += 1
+
         # elevator above the target floor
         elif self.currentFloor > self._activeTarget:
             self.direction = -1
             self.currentFloor -= 1
         
+
         # arrived at the target floor
         if self.currentFloor == self._activeTarget:
             self.direction = 0
