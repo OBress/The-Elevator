@@ -87,7 +87,7 @@ class Elevator:
 
         # passenger outside requesting floor to go up
         elif direction == 1:
-            # if elevator is already at this floor and going up (or idle), they can board immediately
+            # if elevator is already at this floor and going up or idle, they can board immediately
             if floor == self.currentFloor and self.direction >= 0:
                 # already here and compatible direction - no need to queue
                 return
@@ -95,14 +95,17 @@ class Elevator:
             
         # passenger outside requesting floor to go down
         else:
-            # if elevator is already at this floor and going down (or idle), they can board immediately
+            # if elevator is already at this floor and going down or idle, they can board immediately
             if floor == self.currentFloor and self.direction <= 0:
                 # already here and compatible direction - no need to queue
                 return
             self._addDown(floor)
         
+        if not self._activeTarget:
+            self._activeTarget = floor
         # check if we need to update the active target
-        self._activeTarget = self._nextTarget()
+        else:
+            self._activeTarget = self._nextTarget()
 
     
     
@@ -136,6 +139,8 @@ class Elevator:
 
         # arrived at the target floor
         if self.currentFloor == self._activeTarget:
+            # remove floor from queue
+            self._removeFloor(self.currentFloor)
             # get next target
             self._activeTarget = self._nextTarget()
 
@@ -145,74 +150,47 @@ class Elevator:
 
         # elevator is currently moving up
         if self.direction > 0:
-            # Priority 1: service up queue floors above current position
+            # priority 1 - service up queue floors above current floor
             target = self._peekUp(self.currentFloor)
             if target is not None:
                 return target
             
-            # Priority 2: go up to service down queue floors above current position
-            # (continue going up to get people who want to go down, highest first)
+            # priority 2 - service down queue floors above the current floor (to get people who want to go down starting from the top most floor)
             target = self._peekDownAbove(self.currentFloor)
             if target is not None:
                 return target
             
-            # Priority 3: change direction - service down queue floors below
+            # priority 3 - service down queue floors below the current floor
             target = self._peekDown(self.currentFloor)
             if target is not None:
                 return target
             
-            # Priority 4: change direction - service up queue floors below
+            # priority 4 - service queue up requests below the current floor 
             return self._peekUpBelow(self.currentFloor)
 
 
         # elevator is currently moving down
         if self.direction < 0:
-            # Priority 1: service down queue floors below current position
+            # priority 1 - service  queue floors b current floor
             target = self._peekDown(self.currentFloor)
             if target is not None:
                 return target
             
-            # Priority 2: go down to service up queue floors below current position
-            # (continue going down to get people who want to go up, lowest first)
+            # priority 2 - service up queue floors below the current floor (to get people who want to go up starting from the bottom most floor)
             target = self._peekUpBelow(self.currentFloor)
             if target is not None:
                 return target
             
-            # Priority 3: change direction - service up queue floors above
+            # priority 3 - service up queue floors above the current floor
             target = self._peekUp(self.currentFloor)
             if target is not None:
                 return target
             
-            # Priority 4: change direction - service down queue floors above
+            # Priority 4: service queue down requests above the current floor 
             return self._peekDownAbove(self.currentFloor)
 
 
-        # if elevator is idle find the closest request.
-        # Use _peekAny methods to consider ALL floors in both queues,
-        # not just floors in the "proper" direction from current position
-        upNext = self._peekAnyUp()
-        downNext = self._peekAnyDown()
-
-        # if there are no valid requests
-        if upNext is None and downNext is None:
-            return None
-        # if only down request
-        if upNext is None:
-            return downNext
-        # if only up request
-        if downNext is None:
-            return upNext
-
-
-        # if there are both requests, find the closest request
-        distanceUp = abs(upNext - self.currentFloor)
-        distanceDown = abs(downNext - self.currentFloor)
-
-        # if the up request is closer, move to the up request
-        if distanceUp <= distanceDown:
-            return upNext
-        # if the down request is closer, move to the down request
-        return downNext
+        return self._activeTarget
 
 
 
