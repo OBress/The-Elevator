@@ -74,7 +74,50 @@ class Elevator:
     
     def _nextTarget(self):
         """returns the next target floor"""
-        return None
+
+        # elevator is currently moving up
+        if self.direction > 0:
+            target = self._popUp()
+            # if there is a next floor up return it
+            if target is not None:
+                return target
+            # if there is no next floor up, elevator should move to down target
+            return self._popDown()
+
+
+        # elevator is currently moving down
+        if self.direction < 0:
+            target = self._popDown()
+            # if there is a next floor down return it
+            if target is not None:
+                return target
+            # if there is no next floor down, elevator should move to up target
+            return self._popUp()
+
+
+        # if elevator is idle find the closest request.
+        upNext = self._peekUp()
+        downNext = self._peekDown()
+
+        # if there are no requests
+        if upNext is None and downNext is None:
+            return None
+        # if only down request
+        if upNext is None:
+            return self._popDown()
+        # if only up request
+        if downNext is None:
+            return self._popUp()
+
+        # if there are both requests, find the closest request
+        distanceUp = abs(upNext - self.currentFloor)
+        distanceDown = abs(downNext - self.currentFloor)
+        
+        # if the up request is closer, move to the up request
+        if distanceUp <= distanceDown:
+            return self._popUp()
+        # if the down request is closer, move to the down request
+        return self._popDown()
 
 
     def _addUp(self, floor):
