@@ -4,10 +4,9 @@ from typing import Optional
 
 
 class Elevator:
-    def __init__(self, elevatorId, maxFloor = 10, timePerFloor = 2.0):
+    def __init__(self, elevatorId, maxFloor = 10):
         self.id = elevatorId
         self.maxFloor = maxFloor
-        self.timePerFloor = timePerFloor
 
         self.currentFloor = 0
         # -1 down   0 idle   1 up
@@ -246,7 +245,7 @@ class Elevator:
         """returns the highest floor in the down queue (regardless of current position)"""
         if not self._downHeap:
             return None
-        # remember down heap stores negative values, so min negative = highest floor
+        # heap stores negative values, so min negative = highest floor
         return -1 * min(self._downHeap)
     
     def _peekDownAbove(self, currentFloor):
@@ -257,8 +256,10 @@ class Elevator:
             floor = -1 * negFloor
             if floor > currentFloor:
                 validFloors.append(floor)
+
         if not validFloors:
             return None
+
         return max(validFloors)
     
     def _peekUpBelow(self, currentFloor):
@@ -268,8 +269,10 @@ class Elevator:
         for floor in self._upHeap:
             if floor < currentFloor:
                 validFloors.append(floor)
+
         if not validFloors:
             return None
+
         return min(validFloors)
     
     def _removeFloor(self, floor):
@@ -287,7 +290,7 @@ class Elevator:
             # going down, remove from down queue
             if floor in self._downSet:
                 self._downSet.remove(floor)
-                # rebuild the heap without this floor (remember down heap uses negative values)
+                # rebuild the heap without this floor
                 self._downHeap = [f for f in self._downHeap if f != -floor]
                 heapq.heapify(self._downHeap)
 
