@@ -59,7 +59,7 @@ class Elevator:
         return self.status()
 
     def requestFloor(self, floor, direction):
-        """Register a stop request for the elevator.
+        """register a stop request for the elevator
 
         
         int floor: target floor (0, maxFloor)
@@ -105,45 +105,50 @@ class Elevator:
 
         # arrived at the target floor
         if self.currentFloor == self._activeTarget:
-            self.direction = 0
+            # get next target before updating direction
             self._activeTarget = self._nextTarget()
+            # if no next target, go idle
+            if self._activeTarget is None:
+                self.direction = 0
     
     def _nextTarget(self):
         """returns the next target floor"""
 
         # elevator is currently moving up
         if self.direction > 0:
-            target = self._popUp()
+            # only service floors above current position when going up
+            target = self._popUp(self.currentFloor)
             # if there is a next floor up return it
             if target is not None:
                 return target
             # if there is no next floor up, elevator should move to down target
-            return self._popDown()
+            return self._popDown(self.currentFloor)
 
 
         # elevator is currently moving down
         if self.direction < 0:
-            target = self._popDown()
+            # only service floors below current position when going down
+            target = self._popDown(self.currentFloor)
             # if there is a next floor down return it
             if target is not None:
                 return target
             # if there is no next floor down, elevator should move to up target
-            return self._popUp()
+            return self._popUp(self.currentFloor)
 
 
         # if elevator is idle find the closest request.
-        upNext = self._peekUp()
-        downNext = self._peekDown()
+        upNext = self._peekUp(self.currentFloor)
+        downNext = self._peekDown(self.currentFloor)
 
         # if there are no requests
         if upNext is None and downNext is None:
             return None
         # if only down request
         if upNext is None:
-            return self._popDown()
+            return self._popDown(self.currentFloor)
         # if only up request
         if downNext is None:
-            return self._popUp()
+            return self._popUp(self.currentFloor)
 
 
         # if there are both requests, find the closest request
@@ -152,9 +157,9 @@ class Elevator:
 
         # if the up request is closer, move to the up request
         if distanceUp <= distanceDown:
-            return self._popUp()
+            return self._popUp(self.currentFloor)
         # if the down request is closer, move to the down request
-        return self._popDown()
+        return self._popDown(self.currentFloor)
 
 
     def _addUp(self, floor):
@@ -178,42 +183,57 @@ class Elevator:
         self._downSet.add(floor)
         return True
 
-    def _peekUp(self):
-        """returns the next floor in the up queue"""
-        if self._upHeap: 
-            return self._upHeap[0]
-
-        # no floors in the up queue
+    def _peekUp(self, currentFloor):
+        """returns the next floor in the up queue that is above currentFloor"""
+        # iterate through the heap to find the first valid floor (highest floor > currentFloor)
+        for floor in sorted(self._upHeap):
+            if floor > currentFloor:
+                return floor
         return None
 
-    def _peekDown(self):
-        """returns the next floor in the down queue"""
-        if self._downHeap:
-            # return -1 * floor to get the highest floor number
-            return -1 * self._downHeap[0]
-
-        # no floors in the down queue
+    def _peekDown(self, currentFloor):
+        """returns the next floor in the down queue that is below currentFloor"""
+        # iterate through the heap to find the first valid floor (highest floor < currentFloor)
+        for negFloor in sorted(self._downHeap):
+            floor = -1 * negFloor
+            if floor < currentFloor:
+                return floor
         return None
 
-    def _popUp(self):
-        """removes and returns the next floor in the up queue"""
-        if self._upHeap:
+    def _popUp(self, currentFloor):
+        """removes and returns the next floor in the up queue that is above currentFloor"""
+        # keep popping until we find a floor above currentFloor or heap is empty
+        while self._upHeap:
             floor = heapq.heappop(self._upHeap)
             self._upSet.remove(floor)
-            return floor
-
-        # no floors in the up queue
+            
+            if floor > currentFloor:
+                # found a valid floor above current position
+                return floor
+            elif floor < currentFloor:
+                # floor is behind us, add it to down queue
+                self._addDown(floor)
+            # if floor == currentFloor, we're already there, discard it
+        
+        # no floors in the up queue above currentFloor
         return None
 
-    def _popDown(self):
-        """removes and returns the next floor in the down queue"""
-        if self._downHeap:
-            # remove the (-1 * floor) to get the highest floor number
+    def _popDown(self, currentFloor):
+        """removes and returns the next floor in the down queue that is below currentFloor"""
+        # keep popping until we find a floor below currentFloor or heap is empty
+        while self._downHeap:
             floor = -1 * heapq.heappop(self._downHeap)
             self._downSet.remove(floor)
-            return floor
-
-        # no floors in the down queue
+            
+            if floor < currentFloor:
+                # found a valid floor below current position
+                return floor
+            elif floor > currentFloor:
+                # floor is behind us, add it to up queue
+                self._addUp(floor)
+            # if floor == currentFloor, we're already there, discard it
+        
+        # no floors in the down queue below currentFloor
         return None
 
     def _validateFloor(self, floor: int):
