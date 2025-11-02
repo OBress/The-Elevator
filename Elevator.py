@@ -113,20 +113,22 @@ class Elevator:
         # check for new active target
         if self._activeTarget is None:
             self._activeTarget = self._nextTarget()
-            # if there is no next target, elevator should idle (direction already set by _nextTarget)
+            # if there is no next target, elevator should idle
             if self._activeTarget is None:
+                self.direction = 0
                 return
             
 
         # move elevator in the direction of the active target
-        # (direction is already set correctly by _nextTarget)
 
         # elevator below the target floor
         if self.currentFloor < self._activeTarget:
+            self.direction = 1
             self.currentFloor += 1
 
         # elevator above the target floor
         elif self.currentFloor > self._activeTarget:
+            self.direction = -1
             self.currentFloor -= 1
         
 
@@ -134,77 +136,58 @@ class Elevator:
         if self.currentFloor == self._activeTarget:
             # remove the floor from the appropriate queue now that we've reached it
             self._removeFloorFromQueue(self._activeTarget)
-            # get next target (and update direction)
+            # get next target
             self._activeTarget = self._nextTarget()
     
     def _nextTarget(self):
-        """returns the next target floor and updates direction"""
-        target = None
-        
+        """returns the next target floor (without removing from queue)"""
+
         # elevator is currently moving up
         if self.direction > 0:
             # only service floors above current position when going up
             target = self._peekUp(self.currentFloor)
             # if there is a next floor up return it
             if target is not None:
-                self._setDirection(target)
                 return target
             # if there is no next floor up, elevator should move to down target
-            target = self._peekDown(self.currentFloor)
+            return self._peekDown(self.currentFloor)
 
 
         # elevator is currently moving down
-        elif self.direction < 0:
+        if self.direction < 0:
             # only service floors below current position when going down
             target = self._peekDown(self.currentFloor)
             # if there is a next floor down return it
             if target is not None:
-                self._setDirection(target)
                 return target
             # if there is no next floor down, elevator should move to up target
-            target = self._peekUp(self.currentFloor)
+            return self._peekUp(self.currentFloor)
 
 
         # if elevator is idle find the closest request.
-        else:
-            upNext = self._peekUp(self.currentFloor)
-            downNext = self._peekDown(self.currentFloor)
+        upNext = self._peekUp(self.currentFloor)
+        downNext = self._peekDown(self.currentFloor)
 
-            # if there are no valid requests in proper positions
-            if upNext is None and downNext is None:
-                self._setDirection(None)
-                return None
-            # if only down request
-            if upNext is None:
-                target = downNext
-            # if only up request
-            elif downNext is None:
-                target = upNext
-            # if there are both requests, find the closest request
-            else:
-                distanceUp = abs(upNext - self.currentFloor)
-                distanceDown = abs(downNext - self.currentFloor)
+        # if there are no valid requests in proper positions
+        if upNext is None and downNext is None:
+            return None
+        # if only down request
+        if upNext is None:
+            return downNext
+        # if only up request
+        if downNext is None:
+            return upNext
 
-                # if the up request is closer, move to the up request
-                if distanceUp <= distanceDown:
-                    target = upNext
-                # if the down request is closer, move to the down request
-                else:
-                    target = downNext
-        
-        # update direction based on target
-        self._setDirection(target)
-        return target
-    
-    def _setDirection(self, target):
-        """set direction based on target floor"""
-        if target is None:
-            self.direction = 0  # idle
-        elif target > self.currentFloor:
-            self.direction = 1  # up
-        elif target < self.currentFloor:
-            self.direction = -1  # down
-        # if target == currentFloor, keep current direction
+
+        # if there are both requests, find the closest request
+        distanceUp = abs(upNext - self.currentFloor)
+        distanceDown = abs(downNext - self.currentFloor)
+
+        # if the up request is closer, move to the up request
+        if distanceUp <= distanceDown:
+            return upNext
+        # if the down request is closer, move to the down request
+        return downNext
 
 
     def _addUp(self, floor):
@@ -248,12 +231,8 @@ class Elevator:
 
     def _updateActiveTarget(self):
         """update active target if a closer floor should be serviced first"""
-        
-        # if elevator is idle, check if there's a new request and set initial target
-        if self.direction == 0:
-            if self._activeTarget is None:
-                # no active target yet, find one
-                self._activeTarget = self._nextTarget()
+        # if there's no active target
+        if self._activeTarget is None: 
             return
         
         # check if there is a closer floor that should be serviced first versus the active target
@@ -263,7 +242,6 @@ class Elevator:
             if closerFloor is not None and closerFloor < self._activeTarget:
                 # update target to the closer floor (old target stays in queue)
                 self._activeTarget = closerFloor
-                self._setDirection(closerFloor)
         
         elif self.direction < 0:
             # check if there is a closer floor that should be serviced first versus the active target
@@ -271,7 +249,6 @@ class Elevator:
             if closerFloor is not None and closerFloor > self._activeTarget:
                 # update target to the closer floor (old target stays in queue)
                 self._activeTarget = closerFloor
-                self._setDirection(closerFloor)
     
     def _removeFloorFromQueue(self, floor):
         """remove a floor from the queue based on current direction"""
