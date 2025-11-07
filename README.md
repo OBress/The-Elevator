@@ -128,7 +128,6 @@ The-Elevator/
 ├── Elevator.py       # Core elevator logic and algorithms
 ├── main.py           # FastAPI server
 ├── apitester.py      # Interactive CLI testing tool
-├── tester.py         # Additional testing utilities
 ├── requirements.txt  # Python dependencies
 └── README.md         # This file
 ```
